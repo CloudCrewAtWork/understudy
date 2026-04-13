@@ -94,6 +94,19 @@ def _try_locate(page: Page, role: str, name: str) -> tuple[Locator | None, list[
                 return alt.first, tried
 
     if role in CLICKABLE_ROLES and name:
+        # The recipe's role may be wrong (e.g. site renders a tab as a link).
+        # Re-try every clickable role with the same name before giving up.
+        for alt_role in sorted(CLICKABLE_ROLES - {role}):
+            alt = page.get_by_role(alt_role, name=name)  # type: ignore[arg-type]
+            tried.append(f"alt-role={alt_role}")
+            c = alt.count()
+            if c == 1:
+                return alt, tried
+            if c > 1:
+                vis = _first_visible(alt)
+                if vis is not None:
+                    return vis, tried
+
         alt = page.get_by_text(name, exact=False)
         tried.append("get_by_text")
         if alt.count() >= 1:

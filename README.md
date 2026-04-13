@@ -22,10 +22,10 @@
 ## Demo
 
 <p align="center">
-  <img src="docs/assets/replay-demo.svg" alt="understudy replay live UI" width="780">
+  <img src="docs/assets/replay-demo.gif" alt="understudy record → induce → replay" width="820">
 </p>
 
-Actual terminal output from `understudy replay` — the mid-run split-pane shows the step being executed on the left and the growing action log below, followed by the post-run summary. [Recording guide for the full Loom](docs/recording-loom.md) is in the repo.
+Full record → induce → replay loop. Demonstrated once with `claude agents`, Claude induces a parameterised recipe, then it's replayed with `anthropic mcp` — different query, same workflow. The Rich Live panel on the terminal tracks each step in real time.
 
 **Run it yourself:**
 

@@ -66,9 +66,9 @@ The thesis: post-Devin, the bottleneck for agent adoption is *trust*, not *capab
 | Browser capture (Playwright) | ✅ v0.1 |
 | Recipe induction (Claude) | ✅ v0.1 |
 | Regex redaction + URL allowlist | ✅ v0.1 |
-| HITL gate (CLI) | ✅ v0.1 (used in replay) |
+| HITL gate (CLI, 10s countdown, deny-default) | ✅ v0.1 |
 | Encrypted local DB (SQLCipher) | ✅ when `brew install sqlcipher && uv sync --extra crypto`; otherwise plaintext SQLite (with a loud warning) |
-| Replay engine | 🚧 week 1 day 3 |
+| Replay engine (structural grounding, live Rich UI) | ✅ v0.1 |
 | Memory-graph UI (React Flow) | 🚧 week 1 day 5 |
 | Eval harness | ⚡ skeleton present, runner pending replay |
 | macOS native capture | 🚧 week 2 |
@@ -81,9 +81,22 @@ git clone https://github.com/CloudCrewAtWork/understudy
 cd understudy
 just install                                 # uv sync + playwright chromium
 cp .env.example .env                         # add ANTHROPIC_API_KEY
+
+# 1. Record
 just record url=https://duckduckgo.com task=ddg_search
-# do the workflow in the browser, then close the window
+# (do the workflow, close the window when done)
+
+# 2. Induce
 just induce trajectory=<id-from-output>
+
+# 3. Replay with new inputs
+uv run understudy replay <recipe-id> --param query="claude agents"
+
+# Inspect / edit / destroy
+uv run understudy recipes list
+uv run understudy recipes show <recipe-id>
+uv run understudy recipes edit <recipe-id>
+uv run understudy wipe --yes
 ```
 
 Verify your install:
@@ -120,12 +133,16 @@ Local process ↔ Anthropic API ↔ disk ↔ user.
 
 ### Explicit non-goals / residual risk in v0.1
 
-- **Screenshots, when enabled (`UNDERSTUDY_SCREENSHOTS=1`), are written unencrypted to disk.** Default is OFF. We intend to either store them as encrypted BLOBs inside the SQLCipher DB or skip them entirely; until then, leaving screenshots on is a known gap.
+- **Replay uses top-frame navigation checks only.** Subframe (iframe) loads, `fetch` / `XHR`, and `img`/`script` requests to denied domains are **not** blocked in v0.1. A `ctx.route("**/*", ...)` egress filter is planned for v0.2. Third-party trackers may observe replay activity.
+- **Authentication replay is out of scope for v0.1.** The replay engine launches a fresh, unauthenticated browser context. Recipes that depend on a logged-in session will land on the site's login wall on step 1. Persistent-storage replay is planned.
+- **Step-level HITL uses an intent-regex**, operating on the LLM-induced description of a step. A miscategorised intent bypasses the heartbeat/destructive-verb rule. The recipe's explicit `requires_confirmation: true` flag (set by induction or hand-edit) is the authoritative gate.
+- **HITL default is deny-on-Enter**: bare Enter does NOT approve. You must type `y` to approve, `a` to abort, anything else denies. Auto-deny at 10s when no response.
+- **Screenshots, when enabled (`UNDERSTUDY_SCREENSHOTS=1`), are written unencrypted to disk.** Default is OFF.
 - Cannot defend against kernel-level malware or the root user.
 - Cannot defend against an Anthropic-side breach (the model provider sees redacted prompts).
 - Regex redaction is best-effort; false-negatives on novel credential formats are possible. We accept over-redaction.
 - macOS `rm` is not secure on APFS. Use `understudy wipe` which removes the whole data dir and rotates the Keychain entry.
-- Replay-time HITL and credential handling are not yet exercised because the replay engine ships day 3.
+- Playwright error strings may embed selectors/values. We suppress `str(e)` in audit logs and step outcomes; only `type(e).__name__` is retained.
 
 ### Data lifecycle
 

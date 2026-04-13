@@ -27,7 +27,7 @@ jobs:
       - run: uv sync --no-install-project --group dev
       - run: uv run pip-audit
       - run: uv run bandit -r understudy
-      - uses: google/osv-scanner-action/osv-scanner-action@2a1d9620d44ef02a3acf73be9c4ca4f5ddd4c7d6  # v1.9.1
+      - uses: google/osv-scanner-action@75a4c94d73d939a17d55faf234ed57ab5ef81c52  # v2.0.2
         with:
           scan-args: |-
             --recursive

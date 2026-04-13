@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import json
 import logging
+from collections.abc import Sequence
 from pathlib import Path
 
 from anthropic import Anthropic
@@ -99,7 +100,7 @@ def induce_recipe(trajectory: Trajectory, *, persist: bool = True) -> Recipe:
     return recipe
 
 
-def _extract_text(content: list[object]) -> str:
+def _extract_text(content: Sequence[object]) -> str:
     parts: list[str] = []
     for block in content:
         if isinstance(block, TextBlock):

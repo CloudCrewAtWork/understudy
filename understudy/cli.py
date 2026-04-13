@@ -91,7 +91,7 @@ def replay(
             max=60.0,
             help="Seconds to keep browser open after last step (good for demos)",
         ),
-    ] = 2.0,
+    ] = 3.0,
 ) -> None:
     """Replay a recipe with new parameter values."""
     os.umask(0o077)

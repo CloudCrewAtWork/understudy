@@ -1,0 +1,51 @@
+# Python
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Virtual envs
+.venv/
+venv/
+
+# Env / secrets — keep .env.example committed
+.env
+.env.*
+!.env.example
+*.key
+*.pem
+
+# Understudy local data
+data/
+trajectories/
+recordings/
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+*.sqlite
+evals/runs/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*~
+
+# Playwright
+test-results/
+playwright-report/
+
+# Build artifacts
+*.dmg
+*.app

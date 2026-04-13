@@ -48,7 +48,7 @@ PATTERNS: dict[str, Pattern[str]] = {
 # Patterns where we want to keep the original substring matchable for tests.
 LUHN_PATTERNS = ("credit_card_loose", "credit_card_strict")
 
-REDACT_TOKEN = "[REDACTED:{kind}]"  # noqa: S105 — not a credential, the substitution template
+REDACT_TOKEN = "[REDACTED:{kind}]"  # noqa: S105  # nosec B105 - substitution template
 
 
 @dataclass(frozen=True)

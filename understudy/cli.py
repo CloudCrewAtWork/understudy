@@ -295,6 +295,54 @@ def doctor() -> None:
 
 
 @app.command()
+def ui(
+    host: Annotated[str, typer.Option(help="Bind host (locked to loopback)")] = "127.0.0.1",
+    port: Annotated[int, typer.Option("--port", min=0, max=65535, help="0 = random")] = 0,
+    no_open: Annotated[bool, typer.Option("--no-open", help="Do not open browser")] = False,
+) -> None:
+    """Open the memory-graph UI in a browser."""
+    import socket
+    import threading
+    import webbrowser
+
+    import uvicorn
+
+    from .server.app import create_app
+    from .server.security import SessionSecurity, mint_token
+
+    os.umask(0o077)
+    get_settings()
+
+    if host not in {"127.0.0.1", "localhost"}:
+        console.print(
+            f"[red]refusing to bind non-loopback host:[/red] {host}. "
+            "Understudy UI is a single-user local tool; remote binding is not supported."
+        )
+        raise typer.Exit(2)
+
+    # Resolve port 0 → ephemeral: ask the kernel once so the URL and server agree.
+    if port == 0:
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            s.bind((host, 0))
+            port = s.getsockname()[1]
+
+    token = mint_token()
+    session_sec = SessionSecurity(csrf_token=token, host=host, port=port)
+    fastapi_app = create_app(session=session_sec)
+
+    url = f"http://{host}:{port}/?t={token}"
+    console.print(f"[bold cyan]understudy ui[/bold cyan] → {url}")
+    console.print(
+        "[dim]Bound to loopback only. CSRF token required on mutations. Press Ctrl-C to stop.[/dim]"
+    )
+
+    if not no_open:
+        threading.Timer(0.8, lambda: webbrowser.open(url)).start()
+
+    uvicorn.run(fastapi_app, host=host, port=port, log_level="warning")
+
+
+@app.command()
 def wipe(
     yes: Annotated[bool, typer.Option("--yes", help="Skip confirmation")] = False,
 ) -> None:

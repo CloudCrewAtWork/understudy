@@ -49,3 +49,8 @@ playwright-report/
 # Build artifacts
 *.dmg
 *.app
+
+# Node / frontend dev
+node_modules/
+understudy/ui/dist/
+npm-debug.log*

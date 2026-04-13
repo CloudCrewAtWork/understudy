@@ -1,0 +1,40 @@
+@import "@fontsource/geist-sans/400.css";
+@import "@fontsource/geist-sans/500.css";
+@import "@fontsource/geist-sans/600.css";
+@import "@fontsource/geist-mono/400.css";
+@import "@fontsource/geist-mono/500.css";
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html, body, #root { height: 100%; }
+  body {
+    background: #0A0B0D;
+    color: #ECEDEE;
+    font-feature-settings: "cv11", "ss01", "ss03";
+  }
+  /* React Flow: neutralise defaults we don't want */
+  .react-flow__attribution { display: none !important; }
+  .react-flow__node { border: none; background: transparent; padding: 0; }
+  .react-flow__edge-path { stroke: #2A2D34; stroke-width: 1; }
+  .react-flow__handle { opacity: 0; pointer-events: none; }
+  .react-flow__pane { cursor: default; }
+}
+
+@layer utilities {
+  .live-caret::after {
+    content: "";
+    display: inline-block;
+    width: 1px;
+    height: 1em;
+    margin-left: 2px;
+    background: #B8FF3C;
+    vertical-align: text-bottom;
+    animation: blink 1s steps(2) infinite;
+  }
+  @keyframes blink {
+    50% { opacity: 0; }
+  }
+}

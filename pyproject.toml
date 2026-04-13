@@ -67,9 +67,22 @@ build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
 packages = ["understudy"]
+exclude = [
+    "understudy/ui/node_modules",
+    "understudy/ui/src",
+    "understudy/ui/dist",
+    "understudy/ui/package.json",
+    "understudy/ui/package-lock.json",
+    "understudy/ui/tsconfig.json",
+    "understudy/ui/tailwind.config.js",
+    "understudy/ui/postcss.config.js",
+    "understudy/ui/vite.config.ts",
+    "understudy/ui/index.html",
+]
 
 [tool.hatch.build.targets.wheel.force-include]
 "understudy/schema.sql" = "understudy/schema.sql"
+"understudy/server/static" = "understudy/server/static"
 
 [tool.ruff]
 line-length = 100

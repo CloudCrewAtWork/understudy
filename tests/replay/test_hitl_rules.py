@@ -39,6 +39,18 @@ def test_destructive_verb_in_intent():
     assert "destructive" in reason
 
 
+def test_benign_submit_is_not_destructive():
+    # "Submit the search" should NOT trigger HITL — it's an intransitive
+    # use of a common word. The destructive list narrows to contextual phrases.
+    needs, _ = must_confirm(
+        _step(intent="Submit the search by pressing Enter"),
+        current_url="https://a.com/",
+        recipe_known_domains=frozenset({"a.com"}),
+        completed=[],
+    )
+    assert needs is False
+
+
 def test_nav_to_new_domain():
     step = RecipeStep(
         idx=2,

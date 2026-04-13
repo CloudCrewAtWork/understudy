@@ -17,11 +17,12 @@ from .result import StepOutcome
 
 DESTRUCTIVE_VERBS = (
     r"\b("
-    r"send|submit|delete|remove|wipe|destroy|"
-    r"pay|buy|purchase|order|checkout|"
-    r"transfer|withdraw|cancel|refund|"
-    r"publish|post|share|tweet|broadcast|"
-    r"sign|agree|accept|confirm"
+    r"send\s+email|send\s+message|send\s+to|send\s+campaign|"
+    r"delete|remove|wipe|destroy|"
+    r"pay|purchase|checkout|place\s+order|"
+    r"transfer|withdraw|refund|charge|"
+    r"publish|broadcast|"
+    r"sign(?:\s+contract|\s+and\s+send)"
     r")\b"
 )
 DESTRUCTIVE_RE = re.compile(DESTRUCTIVE_VERBS, re.IGNORECASE)

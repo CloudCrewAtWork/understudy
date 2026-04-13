@@ -1,8 +1,14 @@
 """Success-check evaluation.
 
-v0.1: DOM heuristics only. Look for explicit error affordances; assume success
-otherwise. Cheap, silent, well-understood. An LLM-backed semantic check lands
-in v0.2 once we have a corpus of recipes to benchmark against.
+v0.1 policy: we report OK whenever the action executed without raising.
+The NL `success_check` text is logged but not verified — real semantic
+verification lands in v0.2 with an LLM-backed check.
+
+This file used to implement DOM heuristics (searching for elements with
+`role=alert` or text like "error|failed|denied"). In practice every real
+site has benign `aria-live` regions and cookie banners that carry those
+affordances on load, which produced a high false-positive rate. Until we
+can discriminate real errors from benign alerts, we choose to under-claim.
 """
 
 from __future__ import annotations
@@ -13,29 +19,13 @@ from playwright.sync_api import Page
 
 log = logging.getLogger(__name__)
 
-ERROR_ROLES: tuple[str, ...] = ("alert", "alertdialog")
 
+def evaluate_success(_page: Page, check: str | None) -> bool:
+    """Report success for any step that did not raise.
 
-def evaluate_success(page: Page, check: str | None) -> bool:
-    """Return True if no obvious failure signal is present on the page.
-
-    If `check` is None we return True (no postcondition declared).
-    We deliberately do NOT verify the NL check itself in v0.1 — logged only.
-
-    Heuristic scope is intentionally narrow: ARIA alert/alertdialog roles are
-    the only signal we trust. A prior version also did a page-text regex for
-    "error | failed | denied" etc., but real sites bury those words in hidden
-    form-validation messages, screen-reader helpers, and i18n dictionaries —
-    so the regex false-positive rate on healthy pages was too high to ship.
+    Callers pass the NL post-condition string; we log it at INFO for trace
+    readability but do not attempt to verify it.
     """
     if check:
         log.info("success_check (unverified in v0.1): %s", check)
-    try:
-        for role in ERROR_ROLES:
-            alert = page.get_by_role(role)  # type: ignore[arg-type]
-            if alert.count() > 0 and alert.first.is_visible(timeout=300):
-                return False
-    except Exception as e:
-        log.debug("success heuristic raised, treating as pass: %s", e)
-        return True
     return True

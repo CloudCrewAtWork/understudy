@@ -83,6 +83,15 @@ def replay(
     headed: Annotated[bool, typer.Option("--headed/--headless")] = True,
     slow_mo: Annotated[int, typer.Option("--slow-mo", min=0, max=2000)] = 250,
     dry_run: Annotated[bool, typer.Option("--dry-run", help="Ground only, no actions")] = False,
+    hold: Annotated[
+        float,
+        typer.Option(
+            "--hold",
+            min=0.0,
+            max=60.0,
+            help="Seconds to keep browser open after last step (good for demos)",
+        ),
+    ] = 2.0,
 ) -> None:
     """Replay a recipe with new parameter values."""
     os.umask(0o077)
@@ -107,6 +116,7 @@ def replay(
         slow_mo_ms=slow_mo,
         confirm=build_confirm_fn(console),
         dry_run=dry_run,
+        hold_seconds=hold,
     )
     run_with_live_ui(console, replayer, recipe.steps)
     render_summary(console, replayer.result)

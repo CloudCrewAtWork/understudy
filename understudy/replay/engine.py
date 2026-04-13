@@ -108,6 +108,7 @@ class Replayer:
         confirm: ConfirmFn | None = None,
         dry_run: bool = False,
         on_step: Callable[[StepOutcome], None] | None = None,
+        hold_seconds: float = 0.0,
     ) -> None:
         validate_recipe_invariants(recipe)
         self.recipe = recipe
@@ -117,6 +118,7 @@ class Replayer:
         self.confirm = confirm or default_confirm
         self.dry_run = dry_run
         self.on_step = on_step
+        self.hold_seconds = max(0.0, min(hold_seconds, 60.0))
 
         self.run_id = uuid4().hex
         self.budget = Budget()
@@ -149,6 +151,9 @@ class Replayer:
                 ctx, page = self._launch(pw)
                 try:
                     self._drive_loop(page)
+                    if self.hold_seconds > 0 and not self._aborting:
+                        log.info("holding browser open for %.1fs before close", self.hold_seconds)
+                        time.sleep(self.hold_seconds)
                 finally:
                     self._teardown(ctx)
         except Exception as e:

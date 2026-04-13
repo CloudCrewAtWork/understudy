@@ -38,9 +38,24 @@ def load_trajectory(path: Path) -> Trajectory:
                 continue
             steps.append(TrajectoryStep.model_validate_json(stripped))
 
+    # The trajectory's real task_name lives in the DB index, not the filename.
+    from understudy.db import session
+
+    task_name = path.stem
+    try:
+        with session() as conn:
+            row = conn.execute(
+                "SELECT task_name FROM trajectories WHERE id = ?",
+                (path.stem,),
+            ).fetchone()
+            if row and row[0]:
+                task_name = row[0]
+    except Exception as e:
+        log.debug("could not look up task_name from DB: %s", e)
+
     return Trajectory(
         id=path.stem,
-        task_name=path.stem,
+        task_name=task_name,
         target_kind=TargetKind.BROWSER,
         steps=steps,
     )

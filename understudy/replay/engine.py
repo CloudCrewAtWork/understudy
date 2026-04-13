@@ -126,9 +126,15 @@ class Replayer:
             task_name=recipe.task_name,
             steps_total=len(recipe.steps),
         )
-        nav_targets = [
-            s.aria_name or "" for s in recipe.steps if s.action == ActionType.NAV and s.aria_name
-        ]
+        # Claude may place the NAV URL in either aria_name, value_template,
+        # or grounding_hint. Scan all three so the allowlist isn't empty.
+        nav_targets: list[str] = []
+        for s in recipe.steps:
+            if s.action != ActionType.NAV:
+                continue
+            for candidate in (s.aria_name, s.value_template, s.grounding_hint):
+                if candidate and candidate.startswith(("http://", "https://")):
+                    nav_targets.append(candidate)
         self.known_hosts = known_domains(nav_targets)
         self._aborting = False
         self._abort_reason: AbortReason | None = None

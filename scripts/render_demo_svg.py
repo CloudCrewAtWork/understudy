@@ -15,38 +15,63 @@ from rich.console import Console
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
-from understudy.replay.result import StepOutcome, StepStatus  # noqa: E402
+from understudy.replay.result import (  # noqa: E402
+    ReplayResult,
+    StepOutcome,
+    StepStatus,
+)
 from understudy.replay.ui import LiveRunUI, render_summary  # noqa: E402
-from understudy.replay.result import ReplayResult, AbortReason  # noqa: E402
 from understudy.types import ActionType, RecipeStep  # noqa: E402
-
 
 SAMPLE_OUTCOMES: list[StepOutcome] = [
     StepOutcome(
-        idx=1, intent="open duckduckgo homepage", status=StepStatus.OK, ms=412,
-        target_hint=None, url_etld1="duckduckgo.com",
+        idx=1,
+        intent="open duckduckgo homepage",
+        status=StepStatus.OK,
+        ms=412,
+        target_hint=None,
+        url_etld1="duckduckgo.com",
     ),
     StepOutcome(
-        idx=2, intent="focus the search box", status=StepStatus.OK, ms=89,
-        target_hint="Search the web", url_etld1="duckduckgo.com",
+        idx=2,
+        intent="focus the search box",
+        status=StepStatus.OK,
+        ms=89,
+        target_hint="Search the web",
+        url_etld1="duckduckgo.com",
     ),
     StepOutcome(
-        idx=3, intent="type {query}", status=StepStatus.OK, ms=156,
-        target_hint="Search the web", url_etld1="duckduckgo.com",
+        idx=3,
+        intent="type {query}",
+        status=StepStatus.OK,
+        ms=156,
+        target_hint="Search the web",
+        url_etld1="duckduckgo.com",
     ),
     StepOutcome(
-        idx=4, intent="submit the search", status=StepStatus.OK, ms=634,
-        target_hint="Search", url_etld1="duckduckgo.com",
+        idx=4,
+        intent="submit the search",
+        status=StepStatus.OK,
+        ms=634,
+        target_hint="Search",
+        url_etld1="duckduckgo.com",
     ),
     StepOutcome(
-        idx=5, intent="wait for results to render", status=StepStatus.OK, ms=812,
-        target_hint=None, url_etld1="duckduckgo.com",
+        idx=5,
+        intent="wait for results to render",
+        status=StepStatus.OK,
+        ms=812,
+        target_hint=None,
+        url_etld1="duckduckgo.com",
     ),
 ]
 
 _CURRENT = RecipeStep(
-    idx=6, intent="read the first result title", action=ActionType.CLICK,
-    aria_role="link", aria_name="Top result",
+    idx=6,
+    intent="read the first result title",
+    action=ActionType.CLICK,
+    aria_role="link",
+    aria_name="Top result",
 )
 
 
@@ -70,11 +95,16 @@ def main() -> None:
         steps_done=6,
         cost_usd=0.0,
         llm_calls=0,
-        outcomes=SAMPLE_OUTCOMES + [
+        outcomes=[
+            *SAMPLE_OUTCOMES,
             StepOutcome(
-                idx=6, intent="read the first result title", status=StepStatus.OK,
-                ms=203, target_hint="Top result", url_etld1="duckduckgo.com",
-            )
+                idx=6,
+                intent="read the first result title",
+                status=StepStatus.OK,
+                ms=203,
+                target_hint="Top result",
+                url_etld1="duckduckgo.com",
+            ),
         ],
         log_path="~/.understudy/replays/demo.json",
     )

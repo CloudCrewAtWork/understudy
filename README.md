@@ -1,5 +1,3 @@
-<!-- Demo GIF goes here once Day 5 ships -->
-
 <h1 align="center">Understudy</h1>
 
 <p align="center">
@@ -20,6 +18,27 @@
 > **Status: v0.1 day-1 scaffold.** Browser capture and recipe induction work end-to-end. Replay engine and the editable memory-graph UI ship over the next two weeks &mdash; see [Status](#status).
 
 ---
+
+## Demo
+
+<p align="center">
+  <img src="docs/assets/replay-demo.svg" alt="understudy replay live UI" width="780">
+</p>
+
+Actual terminal output from `understudy replay` — the mid-run split-pane shows the step being executed on the left and the growing action log below, followed by the post-run summary. [Recording guide for the full Loom](docs/recording-loom.md) is in the repo.
+
+**Run it yourself:**
+
+```bash
+# 1. demonstrate (opens a browser, do the workflow, close the window)
+uv run understudy record --url https://duckduckgo.com --task ddg_search
+
+# 2. induce a parameterised recipe from the demo
+uv run understudy induce <trajectory-id>
+
+# 3. replay with a different input
+uv run understudy replay <recipe-id> --param query="claude agents"
+```
 
 ## What it is
 

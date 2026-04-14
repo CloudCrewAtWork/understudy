@@ -191,11 +191,11 @@ function RunButton() {
     <button
       disabled
       className="inline-flex h-9 items-center gap-2 rounded-md bg-accent px-4 font-medium text-bg-base hover:bg-accent-hover disabled:opacity-60"
-      title="Run from CLI: understudy replay"
+      title="Run lives in the terminal for v0.3 — `uv run understudy replay <recipe-id> --param key=value` (or --csv rows.csv for a batch). In-UI replay ships v0.4."
     >
       <Play size={14} strokeWidth={2} />
       Run
-      <span className="font-mono text-caption opacity-60">CLI</span>
+      <span className="font-mono text-caption opacity-60">terminal</span>
     </button>
   );
 }

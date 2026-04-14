@@ -125,6 +125,13 @@ export function StepEditor({ recipeId, step, onClose }: Props) {
         )}
 
         <Section title="Synthesised fields">
+          {/* Resynth shimmer: thin cinder sweep while Claude re-synthesises.
+              Without this, the 700–1500ms wait reads as dead UI on video. */}
+          {resynthing && (
+            <div className="relative mb-3 h-[1px] overflow-hidden bg-border-subtle">
+              <div className="absolute inset-y-0 left-0 w-1/3 animate-sweep-x bg-accent" />
+            </div>
+          )}
           <FieldRow
             label="action"
             current={step.action}

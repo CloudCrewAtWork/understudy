@@ -27,6 +27,11 @@
 
 Full record → induce → replay loop. Demonstrated once with `claude agents`, Claude induces a parameterised recipe, then it's replayed with `anthropic mcp` — different query, same workflow. The Rich Live panel on the terminal tracks each step in real time.
 
+**Hero workflow for v0.3:** [GitHub repo triage](docs/hero-demo.md) —
+one recipe, a CSV of repos, six extracted fields per row. The "edit a step
+in plain English, Claude re-synthesises, replay the batch" cut is the
+whole pitch.
+
 **Run it yourself:**
 
 ```bash

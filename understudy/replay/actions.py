@@ -98,12 +98,29 @@ def _do_upload(_ctx: ActionContext) -> None:
     raise ActionError("upload actions are not enabled in v0.1; see roadmap")
 
 
-def _do_note(_ctx: ActionContext) -> None:
-    # note steps are informational; no side effect.
-    return None
+def _do_note(ctx: ActionContext) -> str | None:
+    """Note steps with a grounded target extract that element's text.
+
+    Ungrounded notes (no aria_role/name) are pure commentary — no-op. When
+    a locator is present, we read `inner_text` and return it so the Replayer
+    can persist it to the run's notes.jsonl. This is how a recipe actually
+    produces structured output (stars, release tag, etc.).
+    """
+    if ctx.locator is None:
+        return None
+    try:
+        ctx.locator.wait_for(state="attached", timeout=DEFAULT_TIMEOUT_MS)
+        text = ctx.locator.inner_text(timeout=DEFAULT_TIMEOUT_MS)
+    except Exception as e:
+        log.debug("note extract failed: %s", type(e).__name__)
+        return None
+    return (text or "").strip() or None
 
 
-DISPATCH: dict[ActionType, Callable[[ActionContext], None]] = {
+Handler = Callable[[ActionContext], str | None]
+
+
+DISPATCH: dict[ActionType, Handler] = {
     ActionType.NAV: _do_nav,
     ActionType.CLICK: _do_click,
     ActionType.DBLCLICK: _do_dblclick,
@@ -117,9 +134,11 @@ DISPATCH: dict[ActionType, Callable[[ActionContext], None]] = {
 }
 
 
-def execute(ctx: ActionContext) -> None:
-    """Dispatch `ctx.step.action` to its handler. Unknown action → error."""
+def execute(ctx: ActionContext) -> str | None:
+    """Dispatch `ctx.step.action` to its handler. Returns extracted text for
+    `note` steps with a grounded target, else None. Unknown action → error.
+    """
     handler = DISPATCH.get(ctx.step.action)
     if handler is None:
         raise ActionError(f"no dispatch for action {ctx.step.action}")
-    handler(ctx)
+    return handler(ctx)

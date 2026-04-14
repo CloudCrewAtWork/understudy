@@ -80,6 +80,13 @@ def replay(
         list[str] | None,
         typer.Option("--param", "-p", help="key=value, repeatable"),
     ] = None,
+    csv_path: Annotated[
+        Path | None,
+        typer.Option(
+            "--csv",
+            help="CSV file; one replay per row. Columns match recipe params.",
+        ),
+    ] = None,
     headed: Annotated[bool, typer.Option("--headed/--headless")] = True,
     slow_mo: Annotated[int, typer.Option("--slow-mo", min=0, max=2000)] = 250,
     dry_run: Annotated[bool, typer.Option("--dry-run", help="Ground only, no actions")] = False,
@@ -93,7 +100,12 @@ def replay(
         ),
     ] = 3.0,
 ) -> None:
-    """Replay a recipe with new parameter values."""
+    """Replay a recipe with new parameter values.
+
+    Single run: `understudy replay <recipe-id> --param query=foo`
+    Batch: `understudy replay <recipe-id> --csv repos.csv` (one row per run;
+    output CSV includes extracted notes per row).
+    """
     os.umask(0o077)
     get_settings()
     try:
@@ -101,6 +113,16 @@ def replay(
     except FileNotFoundError:
         console.print(f"[red]recipe not found:[/red] {recipe_id}")
         raise typer.Exit(2) from None
+
+    if csv_path is not None:
+        from .replay.batch import run_csv
+
+        if not csv_path.exists():
+            console.print(f"[red]csv not found:[/red] {csv_path}")
+            raise typer.Exit(2)
+        out = run_csv(recipe.id, csv_path, headed=headed, slow_mo_ms=slow_mo)
+        console.print(f"[green]batch complete:[/green] results → {out}")
+        return
 
     raw_params = _parse_params(param or [])
     try:

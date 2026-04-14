@@ -46,6 +46,9 @@ class StepOutcome(BaseModel):
     tokens_out: int = 0
     cost_usd: float = 0.0
     retries: int = 0
+    # Text extracted from a `note` step's grounded element. Only populated
+    # for note actions; all others remain None.
+    extracted: str | None = None
 
 
 class ReplayResult(BaseModel):

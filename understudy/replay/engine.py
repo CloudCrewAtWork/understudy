@@ -13,6 +13,7 @@ Security invariants enforced here:
 
 from __future__ import annotations
 
+import contextlib
 import logging
 import os
 import signal
@@ -378,8 +379,11 @@ class Replayer:
                 url_etld1=etld1(url),
             )
 
+        extracted: str | None = None
         try:
-            execute_action(ActionContext(page=page, locator=locator, value=value, step=step))
+            extracted = execute_action(
+                ActionContext(page=page, locator=locator, value=value, step=step)
+            )
         except (ActionError, PWError) as e:
             # Do NOT log str(e): Playwright errors embed selectors + values
             # which can contain param data. Log only the exception class.
@@ -422,6 +426,7 @@ class Replayer:
             ms=_ms(t0),
             target_hint=step.aria_name,
             url_etld1=etld1(page.url),
+            extracted=extracted,
         )
 
     # ------------------------------------------------------------------
@@ -439,6 +444,12 @@ class Replayer:
             self.result.status = "partial"
         else:
             self.result.status = "ok"
+        # Persist note extractions as sidecar JSONL — consumed by batch
+        # replay to assemble a CSV of results across parameter rows.
+        from .notes import write_notes
+
+        with contextlib.suppress(Exception):
+            write_notes(self.result, self.recipe.steps)
 
 
 def _ms(t0: float) -> int:

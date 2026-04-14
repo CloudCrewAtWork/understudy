@@ -66,6 +66,7 @@ export function RecipeGraph({
       },
       draggable: false,
       selectable: false,
+      style: { pointerEvents: "all" as const },
     }));
     const es: Edge[] = [];
     for (let i = 0; i < sortedSteps.length - 1; i++) {

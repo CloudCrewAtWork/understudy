@@ -15,7 +15,7 @@
   <img alt="status" src="https://img.shields.io/badge/status-alpha-orange">
 </p>
 
-> **Status: v0.1 day-1 scaffold.** Browser capture and recipe induction work end-to-end. Replay engine and the editable memory-graph UI ship over the next two weeks &mdash; see [Status](#status).
+> **Status: v0.2.** Browser capture, recipe induction, replay, and the editable memory-graph UI all ship in v0.2 &mdash; see [Status](#status). Next up: sub-resource egress filter, prompt-injection classifier, and a published eval pass-rate.
 
 ---
 
@@ -88,10 +88,11 @@ The thesis: post-Devin, the bottleneck for agent adoption is *trust*, not *capab
 | HITL gate (CLI, 10s countdown, deny-default) | ✅ v0.1 |
 | Encrypted local DB (SQLCipher) | ✅ when `brew install sqlcipher && uv sync --extra crypto`; otherwise plaintext SQLite (with a loud warning) |
 | Replay engine (structural grounding, live Rich UI) | ✅ v0.1 |
-| Memory-graph UI (React Flow) | 🚧 week 1 day 5 |
-| Eval harness | ⚡ skeleton present, runner pending replay |
-| macOS native capture | 🚧 week 2 |
-| Prompt-injection classifier | 🚧 week 1 day 4 (delimiter isolation is in today) |
+| Memory-graph UI (React Flow) | ✅ v0.2 |
+| Eval harness | ⚡ skeleton present, runner pending v0.3 |
+| macOS native capture | 🚧 v0.3 |
+| Sub-resource egress filter (replay) | 🚧 v0.3 |
+| Prompt-injection classifier | 🚧 v0.3 (delimiter isolation landed in v0.1) |
 
 ## Quickstart
 

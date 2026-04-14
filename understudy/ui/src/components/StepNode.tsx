@@ -45,7 +45,7 @@ export function StepNode({ data }: { data: StepNodeData }) {
       onClick={() => onClick(step.idx)}
       style={{ width: 320 }}
       className={clsx(
-        "relative block rounded-md border bg-bg-raised text-left transition-colors",
+        "nodrag nopan relative block rounded-md border bg-bg-raised text-left transition-colors cursor-pointer",
         selected
           ? "border-border-emph"
           : "border-border-subtle hover:border-border",

@@ -207,3 +207,31 @@ def test_ip_literal_at_replay_blocked():
     ok, reason = _url_is_permitted("https://127.0.0.1/pixel.gif", "image", ALLOW)
     assert not ok
     assert reason == "malformed_host"
+
+
+def test_ws_patch_script_lists_allowed_hosts():
+    from understudy.replay.egress import _ws_patch_script
+
+    script = _ws_patch_script(["example.com", "cdn.example.com"])
+    assert "example.com" in script
+    assert "cdn.example.com" in script
+    # Must be a self-invoking IIFE so page JS can't re-assign the original.
+    assert script.strip().startswith("(() => {")
+    assert "window.WebSocket = Wrapped" in script
+
+
+def test_ws_patch_script_safe_against_json_injection():
+    # A host string containing quotes must be JSON-encoded so it cannot
+    # escape the array literal. The payload chars may appear in the script,
+    # but only INSIDE an escaped JSON string context — not as executable JS.
+    import json as _json
+
+    from understudy.replay.egress import _ws_patch_script
+
+    payload = '"); alert(1); ("'
+    script = _ws_patch_script([payload])
+    # The only place the payload shows up is inside a `new Set([...])` array
+    # whose entries are JSON-encoded strings.
+    assert f"new Set([{_json.dumps(payload)}])" in script
+    # Sanity: raw unescaped break-out sequence never appears.
+    assert '"); alert(1); ("' not in script

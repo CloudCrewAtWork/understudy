@@ -76,6 +76,47 @@ def _url_is_permitted(url: str, resource_type: str, allowed: frozenset[str]) -> 
     return True, ""
 
 
+def _ws_patch_script(allowed_hosts: list[str]) -> str:
+    """Init script that stops page code from opening a WebSocket to a host
+    outside the allowlist. Playwright's route() does not cover the WS upgrade,
+    so we close the gap in-page: wrap `WebSocket` and throw before the upgrade
+    leaves the renderer. This is belt-and-suspenders alongside the
+    observational `on("websocket")` handler.
+    """
+    import json as _json
+
+    hosts_json = _json.dumps(allowed_hosts)
+    return f"""(() => {{
+    const allowed = new Set({hosts_json});
+    const OrigWS = window.WebSocket;
+    if (!OrigWS || OrigWS.__understudyWrapped) return;
+    const hostOk = (u) => {{
+        try {{
+            const h = new URL(u).hostname.toLowerCase();
+            if (allowed.has(h)) return true;
+            for (const a of allowed) if (h.endsWith('.' + a)) return true;
+            return false;
+        }} catch (_) {{ return false; }}
+    }};
+    const Wrapped = function(url, protocols) {{
+        if (!hostOk(url)) {{
+            throw new DOMException(
+                'WebSocket to ' + url + ' blocked by Understudy egress filter',
+                'SecurityError'
+            );
+        }}
+        return protocols === undefined ? new OrigWS(url) : new OrigWS(url, protocols);
+    }};
+    Wrapped.prototype = OrigWS.prototype;
+    Wrapped.CONNECTING = OrigWS.CONNECTING;
+    Wrapped.OPEN = OrigWS.OPEN;
+    Wrapped.CLOSING = OrigWS.CLOSING;
+    Wrapped.CLOSED = OrigWS.CLOSED;
+    Wrapped.__understudyWrapped = true;
+    window.WebSocket = Wrapped;
+}})();"""
+
+
 def install_egress_filter(
     ctx: BrowserContext,
     allowed_origins: frozenset[str],
@@ -87,7 +128,18 @@ def install_egress_filter(
     function does not re-normalize, so bad input = silent allow-all for that
     entry. The calling code is expected to pass the output of
     `recipe.allowed_origins` (already normalized at capture time).
+
+    Defence layers, strongest first:
+      1. `ctx.route("**/*")` blocks HTTP(S) sub-resource requests before they
+         leave the browser.
+      2. `ctx.add_init_script` wraps `window.WebSocket` so page JS cannot
+         open a WS to a non-allowlisted host (Playwright's route() does not
+         cover the WS upgrade handshake).
+      3. `page.on("websocket")` observes any WS that slips through the wrap
+         (e.g., browser-internal connections) and logs it.
     """
+    # Layer 2: in-page WebSocket wrapper.
+    ctx.add_init_script(_ws_patch_script(sorted(allowed_origins)))
 
     def handle_route(route: Route) -> None:
         req: Request = route.request

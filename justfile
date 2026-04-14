@@ -26,7 +26,7 @@ audit:
     uv run bandit -r understudy
 
 eval:
-    uv run python evals/run_eval.py
+    uv run python -m evals.run_eval
 
 record url task:
     uv run understudy record --url "{{url}}" --task "{{task}}"

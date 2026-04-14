@@ -183,13 +183,37 @@ Removes the data directory and the Keychain entry. Irreversible.
 ## Eval
 
 ```bash
-just eval
+uv run understudy eval        # all cases
+uv run understudy eval repo_triage   # one case
 ```
 
-Eval harness compares replay outcomes against `evals/cases/*.yaml`. The README results table will land once the replay engine ships:
+The harness starts a loopback HTTP server, serves the fixtures under
+`evals/fixtures/`, replays each case's recipe against every variant, and
+compares extracted notes to the case's `expect_extracts`. Results land in
+`evals/runs/<timestamp>/{results.jsonl,results.md}`; the `evals/runs/latest`
+symlink is updated after each run.
 
-| Workflow | Variant | Pass | Steps | Cost |
-|---|---|---|---|---|
+Three perturbation mechanisms are applied to the baseline fixture:
+
+1. **Sibling-wrapper injection** — target nodes are wrapped in extra `<div>`s,
+   breaking ancestor-path selectors while leaving the ARIA tree intact.
+2. **DOM-order shuffle within a landmark** — siblings reordered inside `<main>`,
+   breaking `nth-child` selectors.
+3. **Accessible-name rewrite** — `aria-label`s renamed (Star count → Stargazers
+   count), exercising re-grounding under label churn.
+
+<!-- eval:start -->
+| Case | Variant | Pass | Extracts | Status | Wall (ms) |
+|---|---|:---:|:---:|---|---:|
+| `repo_triage` | `baseline` | ✅ | 6/6 | ok | ~1200 |
+| `repo_triage` | `sibling_wrapper_injection` | ✅ | 6/6 | ok | ~470 |
+| `repo_triage` | `dom_order_shuffle` | ✅ | 6/6 | ok | ~470 |
+| `repo_triage` | `accessible_name_rewrite` | ❌ | 0/6 | error | ~3500 |
+
+**3/4 variants pass (75%).** The rename variant is the known-hard case:
+exact-match grounding by accessible name cannot survive a relabelled page.
+LLM-based regrounding (on the roadmap for v0.4) is the mitigation.
+<!-- eval:end -->
 
 ## Development
 

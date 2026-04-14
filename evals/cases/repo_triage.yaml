@@ -1,0 +1,50 @@
+name: repo_triage
+description: >
+  GitHub-style repository metadata triage. One hand-seeded recipe extracts
+  6 structured fields (stars, language, license, latest release tag, open
+  issues, open PRs) from a repo page. The harness replays it against the
+  baseline fixture and three perturbed variants. Demonstrates that
+  re-grounding by ARIA role+name survives DOM churn where a selector-based
+  replay would break.
+recipe_path: evals/fixtures/repo_triage_recipe.json
+variants:
+  - fixture: repo.html
+    label: baseline
+    expect_extracts:
+      stars: "12.4k"
+      language: "TypeScript"
+      license: "MIT License"
+      release_tag: "v1.4.7"
+      open_issues: "342"
+      open_prs: "28"
+  - fixture: repo_wrapped.html
+    label: sibling_wrapper_injection
+    expect_extracts:
+      stars: "12.4k"
+      language: "TypeScript"
+      license: "MIT License"
+      release_tag: "v1.4.7"
+      open_issues: "342"
+      open_prs: "28"
+  - fixture: repo_reordered.html
+    label: dom_order_shuffle
+    expect_extracts:
+      stars: "12.4k"
+      language: "TypeScript"
+      license: "MIT License"
+      release_tag: "v1.4.7"
+      open_issues: "342"
+      open_prs: "28"
+  - fixture: repo_renamed.html
+    label: accessible_name_rewrite
+    expect_extracts:
+      # This variant renames ARIA labels (Star count → Stargazers count,
+      # License → Project license, etc.). Expected to FAIL on v0.3's
+      # exact-match grounding; the cell that lands here is the benchmark
+      # LLM-based re-grounding is meant to close in v0.4.
+      stars: "12.4k"
+      language: "TypeScript"
+      license: "MIT License"
+      release_tag: "v1.4.7"
+      open_issues: "342"
+      open_prs: "28"

@@ -424,6 +424,33 @@ def _resolve_traj_path(dir_: Path, ident: str) -> Path:
     raise typer.BadParameter(f"trajectory not found: {ident}")
 
 
+@app.command(name="eval")
+def eval_cmd(
+    case: Annotated[
+        str | None,
+        typer.Argument(help="Case name (filename stem in evals/cases/); omit for all."),
+    ] = None,
+) -> None:
+    """Run the eval harness and print a pass-rate table.
+
+    Results land in `evals/runs/<timestamp>/` with `results.jsonl` and
+    `results.md`. The `evals/runs/latest` symlink is updated for README
+    auto-inclusion.
+    """
+    from datetime import UTC, datetime
+
+    from evals.run_eval import RUNS_DIR, markdown_table, run_all
+
+    ts = datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ")
+    out_dir = RUNS_DIR / ts
+    results = run_all(case, out_dir=out_dir)
+    if not results:
+        console.print(f"[red]no cases matched:[/red] {case!r}")
+        raise typer.Exit(1)
+    console.print(markdown_table(results))
+    console.print(f"\n[dim]wrote {len(results)} rows → {out_dir / 'results.jsonl'}[/dim]")
+
+
 def main() -> None:
     sys.exit(app())
 

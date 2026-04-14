@@ -112,6 +112,24 @@ def _try_locate(page: Page, role: str, name: str) -> tuple[Locator | None, list[
         if alt.count() >= 1:
             return alt.first, tried
 
+    # Role-less (or unmatched) + name-present: try accessible-name lookups
+    # before giving up. Covers `<span aria-label="...">` metadata cells that
+    # don't have a queryable ARIA role.
+    if name:
+        for label, fn in (
+            ("get_by_label", page.get_by_label),
+            ("get_by_text", lambda n: page.get_by_text(n, exact=False)),
+        ):
+            alt = fn(name)
+            tried.append(label)
+            c = alt.count()
+            if c == 1:
+                return alt, tried
+            if c > 1:
+                vis = _first_visible(alt)
+                if vis is not None:
+                    return vis, tried
+
     return None, tried
 
 

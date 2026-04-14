@@ -139,7 +139,7 @@ class Replayer:
             for candidate in (s.aria_name, s.value_template, s.grounding_hint):
                 if candidate and candidate.startswith(("http://", "https://")):
                     nav_targets.append(candidate)
-        self.known_hosts = known_domains(nav_targets)
+        nav_hosts = known_domains(nav_targets)
         # Egress allowlist: prefer capture-time observed origins (includes
         # sub-resource CDNs the page actually loaded); fall back to hosts
         # derived from nav steps for legacy recipes that predate capture-time
@@ -149,8 +149,12 @@ class Replayer:
             self.egress_allowlist: frozenset[str] = frozenset(recipe.allowed_origins)
             self._allowlist_source = "capture"
         else:
-            self.egress_allowlist = frozenset(self.known_hosts)
+            self.egress_allowlist = frozenset(nav_hosts)
             self._allowlist_source = "nav-fallback"
+        # "Known hosts" drives the HITL unknown-domain gate. A host the
+        # recording legitimately contacted — whether as nav target or as a
+        # sub-resource captured in `allowed_origins` — is not drift.
+        self.known_hosts = nav_hosts | set(self.egress_allowlist)
         self.blocked_egress: list[BlockedRequest] = []
         self._aborting = False
         self._abort_reason: AbortReason | None = None

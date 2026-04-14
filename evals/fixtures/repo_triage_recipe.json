@@ -1,0 +1,72 @@
+{
+  "id": "fixture-repo-triage",
+  "task_name": "repo_triage",
+  "target_kind": "browser",
+  "source_trajectory_id": "fixture-synth-0001",
+  "induced_by": "hand-seeded-v0.3",
+  "created_at": "2026-04-13T00:00:00Z",
+  "description": "Extract structured metadata (stars, language, license, latest release, open issues, open PRs) from a GitHub-style repository page. Parameterised on URL so one recipe works across a batch of repos.",
+  "params": [
+    {
+      "name": "url",
+      "type": "url",
+      "description": "Repository page URL",
+      "example": "https://github.com/anthropics/claude-code",
+      "required": true
+    }
+  ],
+  "allowed_origins": [],
+  "steps": [
+    {
+      "idx": 1,
+      "action": "nav",
+      "intent": "Navigate to the repository page",
+      "value_template": "{url}",
+      "success_check": "Repository header is visible"
+    },
+    {
+      "idx": 2,
+      "action": "note",
+      "intent": "Read the star count",
+      "aria_role": "status",
+      "aria_name": "Star count",
+      "value_template": "stars"
+    },
+    {
+      "idx": 3,
+      "action": "note",
+      "intent": "Read the primary language",
+      "aria_name": "Primary language",
+      "value_template": "language"
+    },
+    {
+      "idx": 4,
+      "action": "note",
+      "intent": "Read the license",
+      "aria_name": "License",
+      "value_template": "license"
+    },
+    {
+      "idx": 5,
+      "action": "note",
+      "intent": "Read the latest release tag",
+      "aria_role": "link",
+      "aria_name": "Latest release tag",
+      "value_template": "release_tag"
+    },
+    {
+      "idx": 6,
+      "action": "note",
+      "intent": "Read the open issue count",
+      "aria_name": "Open issue count",
+      "value_template": "open_issues"
+    },
+    {
+      "idx": 7,
+      "action": "note",
+      "intent": "Read the open pull request count",
+      "aria_name": "Open pull request count",
+      "value_template": "open_prs"
+    }
+  ]
+}

@@ -73,6 +73,9 @@ class Trajectory(BaseModel):
     success: bool | None = None
     notes: str | None = None
     steps: list[TrajectoryStep] = Field(default_factory=list)
+    # Hosts observed by the browser during recording (top-frame nav plus every
+    # sub-resource request). Becomes the replay-time egress allowlist.
+    allowed_origins: list[str] = Field(default_factory=list)
 
 
 class RecipeParam(BaseModel):
@@ -119,3 +122,8 @@ class Recipe(BaseModel):
     params: list[RecipeParam] = Field(default_factory=list)
     steps: list[RecipeStep]
     safety_notes: str | None = None
+    # Replay-time egress allowlist: normalized hostnames the recording browser
+    # contacted during capture (nav + sub-resources). Replay blocks any request
+    # whose host is not in (or a subdomain of) this set. Legacy recipes with
+    # empty list fall back to the hosts derived from nav steps.
+    allowed_origins: list[str] = Field(default_factory=list)

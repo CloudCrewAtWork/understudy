@@ -91,7 +91,7 @@ The thesis: post-Devin, the bottleneck for agent adoption is *trust*, not *capab
 | Memory-graph UI (React Flow) | ✅ v0.2 |
 | Eval harness | ⚡ skeleton present, runner pending v0.3 |
 | macOS native capture | 🚧 v0.3 |
-| Sub-resource egress filter (replay) | 🚧 v0.3 |
+| Sub-resource egress filter (replay) | ✅ v0.3 |
 | Prompt-injection classifier | 🚧 v0.3 (delimiter isolation landed in v0.1) |
 
 ## Quickstart
@@ -153,7 +153,7 @@ Local process ↔ Anthropic API ↔ disk ↔ user.
 
 ### Explicit non-goals / residual risk in v0.1
 
-- **Replay uses top-frame navigation checks only.** Subframe (iframe) loads, `fetch` / `XHR`, and `img`/`script` requests to denied domains are **not** blocked in v0.1. A `ctx.route("**/*", ...)` egress filter is planned for v0.2. Third-party trackers may observe replay activity.
+- **Replay v0.3 closes the sub-resource egress gap** via `ctx.route("**/*", ...)` keyed on the origins captured during the original recording (persisted in `<trajectory-id>.meta.json` and copied into `Recipe.allowed_origins`). Documents, images, scripts, stylesheets, XHR/fetch, media, and fonts to any host not in the allowlist are blocked at the route handler and logged. `file://` is always denied; `data:` URIs for `document`/`script` are refused regardless of size. WebSockets to non-allowlisted hosts are observed and logged (Playwright's `route()` does not cover the WS upgrade, so hard-abort of an open WebSocket is not yet implemented). The v0.1 top-frame drift check is still in place as belt-and-suspenders.
 - **Authentication replay is out of scope for v0.1.** The replay engine launches a fresh, unauthenticated browser context. Recipes that depend on a logged-in session will land on the site's login wall on step 1. Persistent-storage replay is planned.
 - **Step-level HITL uses an intent-regex**, operating on the LLM-induced description of a step. A miscategorised intent bypasses the heartbeat/destructive-verb rule. The recipe's explicit `requires_confirmation: true` flag (set by induction or hand-edit) is the authoritative gate.
 - **HITL default is deny-on-Enter**: bare Enter does NOT approve. You must type `y` to approve, `a` to abort, anything else denies. Auto-deny at 10s when no response.

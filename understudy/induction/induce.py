@@ -53,11 +53,25 @@ def load_trajectory(path: Path) -> Trajectory:
     except Exception as e:
         log.debug("could not look up task_name from DB: %s", e)
 
+    # Optional sidecar: `<id>.meta.json` carries the capture-time origin
+    # allowlist. A missing sidecar means a legacy (pre-v0.3) recording.
+    allowed_origins: list[str] = []
+    meta_path = path.with_suffix(".meta.json")
+    if meta_path.exists():
+        try:
+            meta = json.loads(meta_path.read_text(encoding="utf-8"))
+            origins = meta.get("allowed_origins")
+            if isinstance(origins, list):
+                allowed_origins = [str(o) for o in origins if isinstance(o, str)]
+        except (OSError, json.JSONDecodeError) as e:
+            log.warning("could not read trajectory meta sidecar %s: %s", meta_path, e)
+
     return Trajectory(
         id=path.stem,
         task_name=task_name,
         target_kind=TargetKind.BROWSER,
         steps=steps,
+        allowed_origins=allowed_origins,
     )
 
 
@@ -107,6 +121,9 @@ def induce_recipe(trajectory: Trajectory, *, persist: bool = True) -> Recipe:
     payload.setdefault("source_trajectory_id", trajectory.id)
     payload.setdefault("induced_by", s.induction_model)
     payload.setdefault("target_kind", trajectory.target_kind.value)
+    # Force from trajectory — never trust the LLM to author the egress
+    # allowlist. Overrides any value the model might hallucinate.
+    payload["allowed_origins"] = list(trajectory.allowed_origins)
     recipe = Recipe.model_validate(payload)
 
     if persist:

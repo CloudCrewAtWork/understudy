@@ -37,7 +37,7 @@ from playwright.async_api import (
 
 from understudy.config import get_settings
 from understudy.db import insert_trajectory, session
-from understudy.security import is_allowed, redact
+from understudy.security import is_allowed, redact, url_host
 from understudy.types import ActionType, TargetKind, Trajectory, TrajectoryStep
 
 from .aria import aria_ref
@@ -166,11 +166,39 @@ class BrowserRecorder:
         self._stop_event = asyncio.Event()
         self._nonce = secrets.token_urlsafe(32)
         self._screenshots_enabled = os.environ.get("UNDERSTUDY_SCREENSHOTS", "0") == "1"
+        # Every origin the browser contacted during capture. Becomes the
+        # replay-time egress allowlist. Keep bounded to avoid unbounded growth
+        # on a long recording session.
+        self._observed_origins: set[str] = set()
+        self._origin_cap_warned = False
 
     @property
     def trajectory_path(self) -> Path:
         s = get_settings()
         return s.trajectories_dir() / f"{self.trajectory.id}.jsonl"
+
+    @property
+    def meta_path(self) -> Path:
+        s = get_settings()
+        return s.trajectories_dir() / f"{self.trajectory.id}.meta.json"
+
+    def _record_origin(self, url: str) -> None:
+        """Add a URL's host to the observed-origins set, if it passes allowlist hardening."""
+        if len(self._observed_origins) >= 1024:
+            if not self._origin_cap_warned:
+                log.warning(
+                    "origin allowlist cap (1024) reached — further hosts "
+                    "from this recording will not be tracked; replay may "
+                    "block legitimate requests",
+                )
+                self._origin_cap_warned = True
+            return
+        host = url_host(url)
+        if host is None:
+            return
+        if not is_allowed(url):
+            return  # deny-listed origins never enter the allowlist
+        self._observed_origins.add(host)
 
     def _next_idx(self) -> int:
         self._idx += 1
@@ -284,6 +312,13 @@ class BrowserRecorder:
             )
             self._page.on("close", lambda _: self._stop_event.set())
             self._context.on("close", lambda _: self._stop_event.set())
+            # Sub-resource origin tracking: every document, image, script,
+            # stylesheet, xhr, fetch, media, and font request passes through
+            # here. We record host only; request bodies and URLs are not
+            # persisted — only the normalized hostname enters the allowlist.
+            self._context.on("request", lambda r: self._record_origin(r.url))
+            # WebSocket is a page-level event, not a context event.
+            self._page.on("websocket", lambda ws: self._record_origin(ws.url))
 
             log.info("recording %r → %s", self.task_name, self.trajectory_path)
             await self._page.goto(self.start_url, wait_until="domcontentloaded")
@@ -294,10 +329,25 @@ class BrowserRecorder:
             self.trajectory.finished_at = (
                 datetime.now(UTC).isoformat(timespec="seconds").replace("+00:00", "Z")
             )
+            self.trajectory.allowed_origins = sorted(self._observed_origins)
+            self._write_meta_sidecar()
 
         with session() as conn:
             insert_trajectory(conn, self.trajectory, self.trajectory_path)
         return self.trajectory
+
+    def _write_meta_sidecar(self) -> None:
+        """Persist trajectory metadata that doesn't belong in the steps JSONL.
+
+        Extensible; today only carries `allowed_origins`. Loader treats a
+        missing sidecar as a legacy recording (empty allowlist → replay falls
+        back to nav-derived hosts).
+        """
+        self.meta_path.parent.mkdir(parents=True, exist_ok=True)
+        payload = {"allowed_origins": self.trajectory.allowed_origins}
+        self.meta_path.write_text(json.dumps(payload), encoding="utf-8")
+        with contextlib.suppress(OSError):
+            self.meta_path.chmod(0o600)
 
 
 def _map_action(kind: str | None) -> ActionType:

@@ -94,3 +94,35 @@ def is_allowed(url: str | None, *, extra_deny: frozenset[str] = frozenset()) -> 
         return False
     deny = DENY_DOMAINS | extra_deny
     return not any(host == d or host.endswith("." + d) for d in deny)
+
+
+def url_host(url: str | None) -> str | None:
+    """Normalize `url` and return its hostname, or None if malformed/unsafe.
+
+    Applies the same hardening as `is_allowed` (rejects userinfo, IP literals,
+    unparseable URLs) so callers cannot be tricked into allowlisting an
+    attacker-controlled host. Does NOT consult the deny-list.
+    """
+    if not url:
+        return None
+    try:
+        parsed = urlparse(url)
+    except ValueError:
+        return None
+    if parsed.username or parsed.password:
+        return None
+    raw_host = parsed.hostname
+    if not raw_host:
+        return None
+    host = _normalize_host(raw_host)
+    if not host or _is_ip_literal(host):
+        return None
+    return host
+
+
+def host_in_allowlist(host: str, allowed: frozenset[str]) -> bool:
+    """True if `host` equals any allowed host or is a subdomain of one.
+
+    Use on the output of `url_host` — assumes `host` is already normalized.
+    """
+    return any(host == a or host.endswith("." + a) for a in allowed)

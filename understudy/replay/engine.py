@@ -36,13 +36,14 @@ from playwright.sync_api import (
 from pydantic import ValidationError
 
 from understudy.config import get_settings
-from understudy.security.allowlist import is_allowed
+from understudy.security.allowlist import is_allowed, url_host
 from understudy.types import ActionType, Recipe, RecipeStep
 
 from .actions import ActionContext, ActionError
 from .actions import execute as execute_action
 from .audit import etld1, hash_value, log_event
 from .checks import evaluate_success
+from .egress import BlockedRequest, install_egress_filter
 from .grounding import GroundingError, ground
 from .hitl_rules import known_domains, must_confirm
 from .result import AbortReason, ReplayResult, StepOutcome, StepStatus
@@ -138,6 +139,18 @@ class Replayer:
                 if candidate and candidate.startswith(("http://", "https://")):
                     nav_targets.append(candidate)
         self.known_hosts = known_domains(nav_targets)
+        # Egress allowlist: prefer capture-time observed origins (includes
+        # sub-resource CDNs the page actually loaded); fall back to hosts
+        # derived from nav steps for legacy recipes that predate capture-time
+        # origin tracking. Capture writes already-normalized hosts so we trust
+        # them as-is — no re-parse.
+        if recipe.allowed_origins:
+            self.egress_allowlist: frozenset[str] = frozenset(recipe.allowed_origins)
+            self._allowlist_source = "capture"
+        else:
+            self.egress_allowlist = frozenset(self.known_hosts)
+            self._allowlist_source = "nav-fallback"
+        self.blocked_egress: list[BlockedRequest] = []
         self._aborting = False
         self._abort_reason: AbortReason | None = None
         self._prev_sigint: Callable[..., object] | int | None = None
@@ -145,6 +158,11 @@ class Replayer:
     def run(self) -> ReplayResult:
         settings = get_settings()
         log_event(self.run_id, "run.start", recipe_id=self.recipe.id, steps=len(self.recipe.steps))
+        log.info(
+            "egress allowlist: %d host(s) from %s",
+            len(self.egress_allowlist),
+            self._allowlist_source,
+        )
         self._install_sigint()
         try:
             with sync_playwright() as pw:
@@ -185,11 +203,27 @@ class Replayer:
         browser = pw.chromium.launch(headless=not self.headed, slow_mo=self.slow_mo_ms)
         ctx = browser.new_context(viewport={"width": 1280, "height": 800})
         ctx.on("page", lambda p: p.on("download", self._on_download))
+        # Sub-resource egress filter — blocks every request to a host not in
+        # the recipe's allowlist. Installs on the context so future pages
+        # (target=_blank, window.open) inherit it.
+        install_egress_filter(ctx, self.egress_allowlist, self._on_egress_block)
         page = ctx.new_page()
         page.on("download", self._on_download)
         page.on("dialog", lambda d: d.dismiss())
         page.on("framenavigated", self._on_framenavigated)
         return ctx, page
+
+    def _on_egress_block(self, blocked: BlockedRequest) -> None:
+        self.blocked_egress.append(blocked)
+        # Short-circuit audit storms: log the first 20, then coalesce.
+        if len(self.blocked_egress) <= 20:
+            log_event(
+                self.run_id,
+                "egress.blocked",
+                resource_type=blocked.resource_type,
+                reason=blocked.reason,
+                host=url_host(blocked.url) or "",
+            )
 
     def _teardown(self, ctx: BrowserContext) -> None:
         try:
